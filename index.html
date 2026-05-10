@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Kvitra — Digital Receipts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@1,700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #FFF5F3;
+      color: #2c2c2c;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero h1 {
+      font-family: 'Roboto', sans-serif;
+      font-style: italic;
+      font-weight: 600;
+      font-size: 2.8rem;
+      color: #c0574a;
+      line-height: 1.2;
+      margin-bottom: .5rem;
+      letter-spacing: .02em;
+    }
+
+    .hero p {
+      font-size: .95rem;
+      color: #b08880;
+      font-weight: 300;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 2.2rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 32px rgba(192, 87, 74, 0.08);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #888;
+      margin-bottom: 1.4rem;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    input {
+      width: 100%;
+      padding: .8rem 1rem;
+      margin-bottom: .9rem;
+      background: #FFF5F3;
+      border: 1.5px solid #FDDDD7;
+      border-radius: 8px;
+      color: #2c2c2c;
+      font-size: .95rem;
+      font-family: 'Inter', sans-serif;
+      transition: border-color .2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #E8806A;
+    }
+
+    input::placeholder { color: #c4a09a; }
+
+    button {
+      width: 100%;
+      padding: .85rem;
+      border: none;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: .6rem;
+      transition: all .2s;
+    }
+
+    .btn-primary {
+      background: #E8806A;
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: #d96e58; }
+
+    .btn-secondary {
+      background: transparent;
+      color: #E8806A;
+      border: 1.5px solid #FDDDD7;
+    }
+
+    .btn-secondary:hover { background: #FFF5F3; }
+
+    .error  { color: #c0392b; font-size: .85rem; margin-bottom: .9rem; text-align: center; }
+    .success { color: #7a9e7e; font-size: .85rem; margin-bottom: .9rem; text-align: center; }
+
+    /* Dashboard */
+    #dashboard { display: none; width: 100%; max-width: 560px; }
+
+    .dash-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.8rem;
+    }
+
+    .dash-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 1.6rem;
+      color: #c0574a;
+    }
+
+    .dash-header button {
+      width: auto;
+      padding: .4rem .9rem;
+      font-size: .85rem;
+      margin: 0;
+    }
+
+    .receipt-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.4rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 16px rgba(192, 87, 74, 0.06);
+    }
+
+    .receipt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .receipt-header h3 { font-size: 1rem; font-weight: 500; }
+    .receipt-header span { font-size: .8rem; color: #b08880; }
+
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: .875rem;
+      padding: .25rem 0;
+      color: #666;
+    }
+
+    .divider { border: none; border-top: 1px solid #FFF0ED; margin: .75rem 0; }
+
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 500;
+      font-size: .95rem;
+      color: #c0574a;
+    }
+
+    .empty {
+      text-align: center;
+      color: #c4a09a;
+      padding: 3rem 0;
+      font-size: .95rem;
+    }
+
+    .footer {
+      margin-top: 2rem;
+      font-size: .8rem;
+      color: #c4a09a;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <h1>Go digital. Go Kvitra.</h1>
+    <p>Your receipts, always with you.</p>
+  </div>
+
+  <div class="card" id="auth-card">
+    <div id="error"   class="error"   style="display:none"></div>
+    <div id="success" class="success" style="display:none"></div>
+
+    <div id="login-form">
+      <div class="card-title">Log in</div>
+      <input type="email"    id="login-email"    placeholder="Email">
+      <input type="password" id="login-password" placeholder="Password" onkeydown="if(event.key==='Enter')login()">
+      <button class="btn-primary"    onclick="login()">Log in</button>
+      <button class="btn-secondary"  onclick="showSignup()">Create account</button>
+    </div>
+
+    <div id="signup-form" style="display:none">
+      <div class="card-title">Create account</div>
+      <input type="text"     id="signup-name"     placeholder="Full name">
+      <input type="email"    id="signup-email"    placeholder="Email">
+      <input type="password" id="signup-password" placeholder="Password (min 6 characters)" onkeydown="if(event.key==='Enter')signup()">
+      <button class="btn-primary"   onclick="signup()">Sign up</button>
+      <button class="btn-secondary" onclick="showLogin()">Back to login</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    Kvitra &mdash; Digital Receipts &nbsp;&middot;&nbsp;
+    <a href="admin.html" style="color:#c4a09a;text-decoration:none;">Admin</a>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard">
+    <div class="dash-header">
+      <h2>My Receipts</h2>
+      <button class="btn-secondary" onclick="logout()">Log out</button>
+    </div>
+    <div id="receipts-list"></div>
+  </div>
+
+  <script>
+    const { createClient } = supabase;
+    const sb = createClient(
+      'https://whvrazrcoytddafpdujg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndodnJhenJjb3l0ZGRhZnBkdWpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MDU3MjksImV4cCI6MjA5Mzk4MTcyOX0.-nQMSGqr3m2B6q9vfZTSMbip_W7Q6vRvlrQqS7xhZF0'
+    );
+
+    function setError(msg) {
+      const el = document.getElementById('error');
+      el.textContent = msg; el.style.display = msg ? '' : 'none';
+      document.getElementById('success').style.display = 'none';
+    }
+
+    function setSuccess(msg) {
+      const el = document.getElementById('success');
+      el.textContent = msg; el.style.display = msg ? '' : 'none';
+      document.getElementById('error').style.display = 'none';
+    }
+
+    function showSignup() {
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('signup-form').style.display = '';
+      setError('');
+    }
+
+    function showLogin() {
+      document.getElementById('signup-form').style.display = 'none';
+      document.getElementById('login-form').style.display = '';
+      setError('');
+    }
+
+    async function signup() {
+      const name     = document.getElementById('signup-name').value.trim();
+      const email    = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value;
+      if (!name || !email || !password) return setError('Please fill in all fields.');
+      const { error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+      if (error) return setError(error.message);
+      setSuccess('Account created! Check your email to confirm, then log in.');
+      showLogin();
+    }
+
+    async function login() {
+      const email    = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) return setError(error.message);
+      showDashboard(data.user);
+    }
+
+    async function logout() {
+      await sb.auth.signOut();
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('auth-card').style.display = '';
+      document.querySelector('.hero').style.display = '';
+      document.querySelector('.footer').style.display = '';
+    }
+
+    async function showDashboard(user) {
+      document.getElementById('auth-card').style.display = 'none';
+      document.querySelector('.hero').style.display = 'none';
+      document.querySelector('.footer').style.display = 'none';
+      document.getElementById('dashboard').style.display = '';
+
+      const { data: receipts } = await sb
+        .from('receipts').select('*')
+        .eq('customer_id', user.id)
+        .order('created_at', { ascending: false });
+
+      const list = document.getElementById('receipts-list');
+      if (!receipts || receipts.length === 0) {
+        list.innerHTML = '<p class="empty">No receipts yet —<br>they will appear here after your next purchase.</p>';
+        return;
+      }
+
+      list.innerHTML = receipts.map(r => `
+        <div class="receipt-card">
+          <div class="receipt-header">
+            <h3>${r.store_name || 'Purchase'}</h3>
+            <span>${new Date(r.created_at).toLocaleString()}</span>
+          </div>
+          ${r.items && r.items.length ? `
+            ${r.items.map(i => `
+              <div class="item-row"><span>${i.name} &times;${i.qty}</span><span>${i.value}</span></div>
+            `).join('')}
+            <hr class="divider">
+            <div class="total-row"><span>Total</span><span>${r.total_amount}</span></div>
+          ` : '<span style="color:#c4a09a;font-size:.85rem">Receipt data unavailable</span>'}
+        </div>
+      `).join('');
+    }
+
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (session) showDashboard(session.user);
+    });
+  </script>
+</body>
+</html>
