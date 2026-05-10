@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Your Receipt — Kvitra</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@1,700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #FFF5F3; color: #2c2c2c; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+    .logo { font-family: 'Roboto', sans-serif; font-style: italic; font-weight: 700; font-size: 1.6rem; color: #c0574a; margin-bottom: 1.5rem; }
+    .card { background: #fff; border-radius: 16px; padding: 2rem; width: 100%; max-width: 420px; box-shadow: 0 4px 32px rgba(192,87,74,.08); }
+    .store { font-size: 1.1rem; font-weight: 500; margin-bottom: .25rem; }
+    .date  { font-size: .85rem; color: #b08880; margin-bottom: 1.5rem; }
+    .divider { border: none; border-top: 1px solid #FFF0ED; margin: 1rem 0; }
+    .item-row { display: flex; justify-content: space-between; font-size: .9rem; padding: .3rem 0; color: #555; }
+    .item-name { flex: 1; }
+    .item-qty  { color: #b08880; margin: 0 1rem; }
+    .item-val  { font-weight: 500; color: #2c2c2c; }
+    .total-row { display: flex; justify-content: space-between; font-weight: 600; font-size: 1rem; color: #c0574a; }
+    .footer { margin-top: 1.5rem; font-size: .8rem; color: #c4a09a; text-align: center; }
+    .error { color: #c0392b; text-align: center; }
+    .loading { color: #b08880; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="logo">Kvitra.</div>
+  <div class="card" id="card">
+    <p class="loading">Loading receipt...</p>
+  </div>
+  <div class="footer">Digital receipt powered by Kvitra</div>
+
+  <script>
+    const { createClient } = supabase;
+    const sb = createClient(
+      'https://whvrazrcoytddafpdujg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndodnJhenJjb3l0ZGRhZnBkdWpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MDU3MjksImV4cCI6MjA5Mzk4MTcyOX0.-nQMSGqr3m2B6q9vfZTSMbip_W7Q6vRvlrQqS7xhZF0'
+    );
+
+    async function loadReceipt() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      const card = document.getElementById('card');
+
+      if (!id) {
+        card.innerHTML = '<p class="error">No receipt ID provided.</p>';
+        return;
+      }
+
+      const { data, error } = await sb.rpc('get_receipt_by_id', { receipt_id: id });
+
+      if (error || !data || data.length === 0) {
+        card.innerHTML = '<p class="error">Receipt not found.</p>';
+        return;
+      }
+
+      const r = data[0];
+      const date = new Date(r.created_at).toLocaleString();
+
+      card.innerHTML = `
+        <div class="store">${r.store_name || 'Purchase'}</div>
+        <div class="date">${date}</div>
+        <hr class="divider">
+        ${r.items && r.items.length ? r.items.map(i => `
+          <div class="item-row">
+            <span class="item-name">${i.name}</span>
+            <span class="item-qty">x${i.qty}</span>
+            <span class="item-val">${i.value}</span>
+          </div>
+        `).join('') : '<p style="color:#c4a09a;font-size:.875rem">No item data</p>'}
+        <hr class="divider">
+        <div class="total-row"><span>Total</span><span>${r.total_amount || '—'}</span></div>
+      `;
+    }
+
+    loadReceipt();
+  </script>
+</body>
+</html>
