@@ -122,11 +122,21 @@
       margin-bottom: 1.8rem;
     }
 
-    .dash-header h2 {
-      font-family: 'Playfair Display', serif;
+    .dash-label {
+      font-family: 'Roboto', sans-serif;
       font-style: italic;
-      font-size: 1.6rem;
+      font-weight: 600;
+      font-size: 2rem;
       color: #c0574a;
+      margin-bottom: .3rem;
+    }
+
+    .dash-header h2 {
+      font-family: 'Inter', sans-serif;
+      font-style: normal;
+      font-size: 1rem;
+      font-weight: 400;
+      color: #b08880;
     }
 
     .dash-header button {
@@ -223,6 +233,7 @@
 
   <!-- Dashboard -->
   <div id="dashboard">
+    <div class="dash-label">Dashboard.</div>
     <div class="dash-header">
       <h2>My Receipts</h2>
       <button class="btn-secondary" onclick="logout()">Log out</button>
@@ -292,7 +303,7 @@
       document.getElementById('auth-card').style.display = 'none';
       document.querySelector('.hero').style.display = 'none';
       document.querySelector('.footer').style.display = 'none';
-      document.getElementById('dashboard').style.display = '';
+      document.getElementById('dashboard').style.display = 'block';
 
       const { data: receipts } = await sb
         .from('receipts').select('*')
