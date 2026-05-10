@@ -118,7 +118,7 @@
 
     async function showDashboard() {
       document.getElementById('login-wrap').style.display = 'none';
-      document.getElementById('dashboard').style.display = '';
+      document.getElementById('dashboard').style.display = 'block';
       loadCustomers();
     }
 
@@ -148,7 +148,7 @@
 
     async function showReceipts(customer) {
       document.getElementById('customers-view').style.display = 'none';
-      document.getElementById('receipts-view').style.display = '';
+      document.getElementById('receipts-view').style.display = 'block';
       document.getElementById('receipts-title').textContent = customer.email;
 
       const { data: receipts } = await sb.rpc('get_receipts_for_customer', { p_customer_id: customer.id });
@@ -176,7 +176,7 @@
 
     function showCustomers() {
       document.getElementById('receipts-view').style.display = 'none';
-      document.getElementById('customers-view').style.display = '';
+      document.getElementById('customers-view').style.display = 'block';
     }
 
     sb.auth.getSession().then(async ({ data: { session } }) => {
