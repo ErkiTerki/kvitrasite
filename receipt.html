@@ -21,12 +21,33 @@
     .footer { margin-top: 1.5rem; font-size: .8rem; color: #c4a09a; text-align: center; }
     .error { color: #c0392b; text-align: center; }
     .loading { color: #b08880; text-align: center; }
+    .nudge {
+      width: 100%; max-width: 420px; margin-top: 1.2rem;
+      background: #c0574a; border-radius: 16px; padding: 1.8rem 2rem;
+      text-align: center; box-shadow: 0 4px 32px rgba(192,87,74,.25);
+    }
+    .nudge-headline {
+      font-family: 'Roboto', sans-serif; font-style: italic; font-weight: 700;
+      font-size: 1.5rem; color: #fff; margin-bottom: .5rem;
+    }
+    .nudge-sub { font-size: .9rem; color: rgba(255,255,255,.85); font-weight: 300; line-height: 1.55; margin-bottom: 1.3rem; }
+    .nudge-btn {
+      display: inline-block; background: #fff; color: #c0574a;
+      font-family: 'Inter', sans-serif; font-weight: 500; font-size: .95rem;
+      padding: .7rem 1.6rem; border-radius: 8px; text-decoration: none; transition: background .15s;
+    }
+    .nudge-btn:hover { background: #FFF5F3; }
   </style>
 </head>
 <body>
   <div class="logo">Kvitra.</div>
   <div class="card" id="card">
     <p class="loading">Loading receipt...</p>
+  </div>
+  <div class="nudge" id="nudge" style="display:none">
+    <div class="nudge-headline">Never lose a receipt again.</div>
+    <p class="nudge-sub">Sign up free and get all your receipts digitally — always in your pocket.</p>
+    <a href="https://zingy-rugelach-b39619.netlify.app/" class="nudge-btn">Create free account →</a>
   </div>
   <div class="footer">Digital receipt powered by Kvitra</div>
 
@@ -55,7 +76,8 @@
       }
 
       const r = data[0];
-      const date = new Date(r.created_at).toLocaleString();
+      const date = new Date(r.created_at).toLocaleString('en');
+      document.getElementById('nudge').style.display = '';
 
       card.innerHTML = `
         <div class="store">${r.store_name || 'Purchase'}</div>
