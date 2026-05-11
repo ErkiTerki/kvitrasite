@@ -146,41 +146,91 @@
       margin: 0;
     }
 
-    .receipt-card {
+    /* Week navigation */
+    .week-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       background: #fff;
       border-radius: 12px;
+      padding: .45rem .75rem;
       margin-bottom: .75rem;
       box-shadow: 0 2px 16px rgba(192, 87, 74, 0.06);
+    }
+
+    .week-nav-btn {
+      background: none;
+      border: none;
+      width: auto;
+      margin: 0;
+      padding: .2rem .6rem;
+      font-size: 1.5rem;
+      color: #c0574a;
+      cursor: pointer;
+      border-radius: 6px;
+      line-height: 1;
+      transition: background .15s;
+    }
+
+    .week-nav-btn:hover { background: #FFF0ED; }
+    .week-nav-label { font-size: .88rem; font-weight: 500; color: #2c2c2c; }
+
+    /* Day groups */
+    .day-group {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(192, 87, 74, 0.06);
+      margin-bottom: .5rem;
       overflow: hidden;
     }
+
+    .day-group.empty-day { opacity: .32; }
+
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: .85rem 1.4rem;
+      gap: .75rem;
+    }
+
+    .day-group:not(.empty-day) .day-header { cursor: pointer; user-select: none; }
+    .day-group:not(.empty-day) .day-header:hover { background: #FFF8F7; }
+    .day-group.open .day-header { border-bottom: 1px solid #FFF0ED; }
+    .day-group.open .day-header .chevron { transform: rotate(180deg); }
+
+    .day-date { font-size: .9rem; font-weight: 500; }
+    .day-count { font-size: .75rem; color: #b08880; margin-top: .12rem; }
+
+    .day-header-right { display: flex; align-items: center; flex-shrink: 0; }
+
+    .day-body { display: none; }
+    .day-group.open .day-body { display: block; }
+
+    /* Receipt cards inside day-body */
+    .receipt-card { border-bottom: 1px solid #FFF5F3; }
+    .receipt-card:last-child { border-bottom: none; }
 
     .receipt-summary {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1.1rem 1.4rem;
+      padding: .85rem 1.4rem;
       cursor: pointer;
       user-select: none;
       gap: 1rem;
     }
 
     .receipt-summary:hover { background: #FFF8F7; }
+    .receipt-summary-left h3 { font-size: .88rem; font-weight: 500; }
+    .receipt-summary-left .time { font-size: .73rem; color: #b08880; margin-top: .1rem; }
 
-    .receipt-summary-left h3 { font-size: .95rem; font-weight: 500; }
-    .receipt-summary-left .date { font-size: .78rem; color: #b08880; margin-top: .15rem; }
-
-    .receipt-summary-right {
-      display: flex;
-      align-items: center;
-      gap: .75rem;
-      flex-shrink: 0;
-    }
-
-    .receipt-total { font-size: .95rem; font-weight: 500; color: #c0574a; }
+    .receipt-summary-right { display: flex; align-items: center; gap: .6rem; flex-shrink: 0; }
+    .receipt-total { font-size: .88rem; font-weight: 500; color: #c0574a; }
 
     .chevron {
-      width: 16px;
-      height: 16px;
+      width: 15px;
+      height: 15px;
       color: #d9b0aa;
       transition: transform .22s ease;
       flex-shrink: 0;
@@ -190,7 +240,7 @@
 
     .receipt-body {
       display: none;
-      padding: 0 1.4rem 1.2rem;
+      padding: 0 1.4rem 1rem;
       border-top: 1px solid #FFF0ED;
     }
 
@@ -199,18 +249,18 @@
     .item-row {
       display: flex;
       justify-content: space-between;
-      font-size: .875rem;
-      padding: .28rem 0;
+      font-size: .855rem;
+      padding: .27rem 0;
       color: #666;
     }
 
-    .divider { border: none; border-top: 1px solid #FFF0ED; margin: .6rem 0; }
+    .divider { border: none; border-top: 1px solid #FFF0ED; margin: .55rem 0; }
 
     .total-row {
       display: flex;
       justify-content: space-between;
       font-weight: 500;
-      font-size: .95rem;
+      font-size: .88rem;
       color: #c0574a;
     }
 
@@ -269,6 +319,11 @@
     <div class="dash-header">
       <h2>My Receipts</h2>
       <button class="btn-secondary" onclick="logout()">Log out</button>
+    </div>
+    <div class="week-nav">
+      <button class="week-nav-btn" onclick="prevWeek()">&#8249;</button>
+      <span class="week-nav-label" id="week-label"></span>
+      <button class="week-nav-btn" onclick="nextWeek()">&#8250;</button>
     </div>
     <div id="receipts-list"></div>
   </div>
@@ -331,6 +386,88 @@
       document.querySelector('.footer').style.display = '';
     }
 
+    let allReceipts = [];
+    let weekStart   = getWeekStart(new Date());
+
+    function getWeekStart(d) {
+      const date = new Date(d);
+      const day  = date.getDay();
+      date.setDate(date.getDate() - (day === 0 ? 6 : day - 1));
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }
+
+    function prevWeek() { weekStart = new Date(weekStart.getTime() - 7 * 86400000); renderWeek(); }
+    function nextWeek() { weekStart = new Date(weekStart.getTime() + 7 * 86400000); renderWeek(); }
+
+    function renderWeek() {
+      const end  = new Date(weekStart.getTime() + 6 * 86400000);
+      const fmtA = { month: 'short', day: 'numeric' };
+      const fmtB = weekStart.getMonth() === end.getMonth() ? { day: 'numeric' } : fmtA;
+      document.getElementById('week-label').textContent =
+        weekStart.toLocaleDateString(undefined, fmtA) + ' – ' +
+        end.toLocaleDateString(undefined, fmtB) + ', ' + end.getFullYear();
+
+      const chev = `<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const s = new Date(weekStart.getTime() + i * 86400000);
+        const e = new Date(s.getTime() + 86400000 - 1);
+        return { s, recs: allReceipts.filter(r => { const d = new Date(r.created_at); return d >= s && d <= e; }) };
+      });
+
+      const list = document.getElementById('receipts-list');
+
+      list.innerHTML = days.map(({ s, recs }) => {
+        const hasRecs  = recs.length > 0;
+        const dayLabel = s.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+        const count    = hasRecs ? (recs.length === 1 ? '1 receipt' : `${recs.length} receipts`) : 'No receipts';
+
+        const receiptsHtml = recs.map(r => {
+          const hasItems = r.items && r.items.length;
+          const body = hasItems ? `
+            <div class="receipt-body">
+              ${r.items.map(i => `<div class="item-row"><span>${i.name} &times;${i.qty}</span><span>${i.value}</span></div>`).join('')}
+              <hr class="divider">
+              <div class="total-row"><span>Total</span><span>${r.total_amount}</span></div>
+            </div>` : '';
+          return `
+            <div class="receipt-card" onclick="toggleReceipt(this)">
+              <div class="receipt-summary">
+                <div class="receipt-summary-left">
+                  <h3>${r.store_name || 'Purchase'}</h3>
+                  <div class="time">${new Date(r.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+                <div class="receipt-summary-right">
+                  <span class="receipt-total">${r.total_amount || ''}</span>
+                  ${hasItems ? chev : ''}
+                </div>
+              </div>${body}
+            </div>`;
+        }).join('');
+
+        return `
+          <div class="day-group${hasRecs ? '' : ' empty-day'}">
+            <div class="day-header" ${hasRecs ? 'onclick="toggleDay(this)"' : ''}>
+              <div><div class="day-date">${dayLabel}</div><div class="day-count">${count}</div></div>
+              <div class="day-header-right">${hasRecs ? chev : ''}</div>
+            </div>
+            ${hasRecs ? `<div class="day-body">${receiptsHtml}</div>` : ''}
+          </div>`;
+      }).join('');
+
+      // Auto-expand today if it falls in this week
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const ti = Math.round((today.getTime() - weekStart.getTime()) / 86400000);
+      if (ti >= 0 && ti < 7) {
+        const g = list.querySelectorAll('.day-group')[ti];
+        if (g && !g.classList.contains('empty-day')) g.classList.add('open');
+      }
+    }
+
+    function toggleDay(header) { header.closest('.day-group').classList.toggle('open'); }
+    function toggleReceipt(card) { card.classList.toggle('open'); }
+
     async function showDashboard(user) {
       document.getElementById('auth-card').style.display = 'none';
       document.querySelector('.hero').style.display = 'none';
@@ -342,41 +479,9 @@
         .eq('customer_id', user.id)
         .order('created_at', { ascending: false });
 
-      const list = document.getElementById('receipts-list');
-      if (!receipts || receipts.length === 0) {
-        list.innerHTML = '<p class="empty">No receipts yet —<br>they will appear here after your next purchase.</p>';
-        return;
-      }
-
-      list.innerHTML = receipts.map(r => {
-        const hasItems = r.items && r.items.length;
-        const itemsHtml = hasItems ? `
-          <div class="receipt-body">
-            ${r.items.map(i => `
-              <div class="item-row"><span>${i.name} &times;${i.qty}</span><span>${i.value}</span></div>
-            `).join('')}
-            <hr class="divider">
-            <div class="total-row"><span>Total</span><span>${r.total_amount}</span></div>
-          </div>` : '';
-        return `
-          <div class="receipt-card" onclick="toggleReceipt(this)">
-            <div class="receipt-summary">
-              <div class="receipt-summary-left">
-                <h3>${r.store_name || 'Purchase'}</h3>
-                <div class="date">${new Date(r.created_at).toLocaleString()}</div>
-              </div>
-              <div class="receipt-summary-right">
-                <span class="receipt-total">${r.total_amount || ''}</span>
-                ${hasItems ? `<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>` : ''}
-              </div>
-            </div>
-            ${itemsHtml}
-          </div>`;
-      }).join('');
-    }
-
-    function toggleReceipt(card) {
-      card.classList.toggle('open');
+      allReceipts = receipts || [];
+      weekStart   = getWeekStart(new Date());
+      renderWeek();
     }
 
     sb.auth.getSession().then(({ data: { session } }) => {
