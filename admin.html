@@ -33,8 +33,14 @@
     tr:last-child td { border-bottom: none; }
     tr.clickable:hover td { background: #222; cursor: pointer; }
 
+    /* Tabs */
+    .tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+    .tab { padding: .4rem .9rem; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px; cursor: pointer; font-size: .85rem; color: #888; }
+    .tab.active { background: #1565c0; color: #fff; border-color: #1565c0; }
+
     /* Receipts panel */
     #receipts-view { display: none; }
+    #anon-view { display: none; }
     .back-btn { margin-bottom: 1.5rem; }
     .panel { background: #1a1a1a; border-radius: 8px; padding: 1.5rem; }
     .panel-title { font-size: 1rem; margin-bottom: 1.2rem; color: #888; }
@@ -46,6 +52,11 @@
     .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: .9rem; }
     .empty { color: #555; padding: 1.5rem 0; }
     .badge { background: #1565c0; color: #fff; font-size: .7rem; padding: .2rem .5rem; border-radius: 3px; }
+    .anon-badge { background: #333; color: #aaa; font-size: .7rem; padding: .2rem .5rem; border-radius: 3px; }
+    tr.detail-row td { padding: 0; }
+    .detail-inner { padding: .75rem 1rem 1rem; background: #161616; }
+    tr.detail-row { display: none; }
+    tr.detail-row.open { display: table-row; }
   </style>
 </head>
 <body>
@@ -69,6 +80,11 @@
       </div>
     </div>
 
+    <div class="tabs">
+      <div class="tab active" id="tab-customers" onclick="switchTab('customers')">Customers</div>
+      <div class="tab"        id="tab-anon"      onclick="switchTab('anon')">Anonymous Receipts</div>
+    </div>
+
     <div id="customers-view">
       <table>
         <thead>
@@ -79,11 +95,20 @@
     </div>
 
     <div id="receipts-view">
-      <button class="btn btn-secondary back-btn" onclick="showCustomers()">← Back to customers</button>
+      <button class="btn btn-secondary back-btn" onclick="switchTab('customers')">← Back to customers</button>
       <div class="panel">
         <div class="panel-title" id="receipts-title"></div>
         <div id="receipts-list"></div>
       </div>
+    </div>
+
+    <div id="anon-view">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Store</th><th>Total</th><th></th></tr>
+        </thead>
+        <tbody id="anon-rows"></tbody>
+      </table>
     </div>
   </div>
 
@@ -122,7 +147,22 @@
     async function showDashboard() {
       document.getElementById('login-wrap').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
-      loadCustomers();
+      switchTab('customers');
+    }
+
+    function switchTab(tab) {
+      document.getElementById('customers-view').style.display = 'none';
+      document.getElementById('receipts-view').style.display  = 'none';
+      document.getElementById('anon-view').style.display      = 'none';
+      document.getElementById('tab-customers').classList.toggle('active', tab === 'customers');
+      document.getElementById('tab-anon').classList.toggle('active', tab === 'anon');
+      if (tab === 'customers') {
+        document.getElementById('customers-view').style.display = 'block';
+        loadCustomers();
+      } else if (tab === 'anon') {
+        document.getElementById('anon-view').style.display = 'block';
+        loadAnonymous();
+      }
     }
 
     async function loadCustomers() {
@@ -165,7 +205,7 @@
       list.innerHTML = receipts.map(r => `
         <div class="receipt-card">
           <h3>${r.store_name || 'Purchase'}</h3>
-          <div class="date">${new Date(r.created_at).toLocaleString()}</div>
+          <div class="date">${new Date(r.created_at).toLocaleString('en')}</div>
           ${r.items && r.items.length ? `
             ${r.items.map(i => `
               <div class="item-row"><span>${i.name} x${i.qty}</span><span>${i.value}</span></div>
@@ -177,9 +217,37 @@
       `).join('');
     }
 
-    function showCustomers() {
-      document.getElementById('receipts-view').style.display = 'none';
-      document.getElementById('customers-view').style.display = 'block';
+    async function loadAnonymous() {
+      const { data: receipts } = await sb.rpc('get_anonymous_receipts');
+      const tbody = document.getElementById('anon-rows');
+      tbody.innerHTML = '';
+
+      if (!receipts || receipts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">No anonymous receipts yet.</td></tr>';
+        return;
+      }
+
+      receipts.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'clickable';
+        tr.innerHTML = `
+          <td>${new Date(r.created_at).toLocaleString('en')}</td>
+          <td>${r.store_name || '—'}</td>
+          <td>${r.total_amount || '—'}</td>
+          <td><span class="anon-badge">anonymous</span></td>
+        `;
+        const detail = document.createElement('tr');
+        detail.className = 'detail-row';
+        detail.id = 'detail-' + idx;
+        const inner = r.items && r.items.length
+          ? r.items.map(i => `<div class="item-row"><span>${i.name} x${i.qty}</span><span>${i.value}</span></div>`).join('')
+            + `<hr class="divider"><div class="total-row"><span>Total</span><span>${r.total_amount}</span></div>`
+          : '<span style="color:#555;font-size:.85rem">No item data</span>';
+        detail.innerHTML = `<td colspan="4"><div class="detail-inner">${inner}</div></td>`;
+        tr.onclick = () => detail.classList.toggle('open');
+        tbody.appendChild(tr);
+        tbody.appendChild(detail);
+      });
     }
 
     sb.auth.getSession().then(async ({ data: { session } }) => {
