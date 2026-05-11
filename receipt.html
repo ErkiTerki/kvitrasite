@@ -58,41 +58,53 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndodnJhenJjb3l0ZGRhZnBkdWpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MDU3MjksImV4cCI6MjA5Mzk4MTcyOX0.-nQMSGqr3m2B6q9vfZTSMbip_W7Q6vRvlrQqS7xhZF0'
     );
 
+    function renderCard(store, items, total, dateStr, showNudge) {
+      document.getElementById('card').innerHTML = `
+        <div class="store">${store || 'Purchase'}</div>
+        <div class="date">${dateStr}</div>
+        <hr class="divider">
+        ${items && items.length ? items.map(i => `
+          <div class="item-row">
+            <span class="item-name">${i.n}</span>
+            <span class="item-qty">x${i.q}</span>
+            <span class="item-val">${i.v}</span>
+          </div>
+        `).join('') : '<p style="color:#c4a09a;font-size:.875rem">No item data</p>'}
+        <hr class="divider">
+        <div class="total-row"><span>Total</span><span>${total || '—'}</span></div>
+      `;
+      if (showNudge) document.getElementById('nudge').style.display = '';
+    }
+
     async function loadReceipt() {
       const params = new URLSearchParams(window.location.search);
-      const id = params.get('id');
-      const card = document.getElementById('card');
+      const card   = document.getElementById('card');
 
-      if (!id) {
-        card.innerHTML = '<p class="error">No receipt ID provided.</p>';
+      const encoded = params.get('data');
+      if (encoded) {
+        try {
+          let b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+          while (b64.length % 4) b64 += '=';
+          const r = JSON.parse(atob(b64));
+          renderCard(r.s, r.i, r.t, new Date(r.d).toLocaleString('en'), true);
+        } catch(e) {
+          card.innerHTML = '<p class="error">Invalid receipt data.</p>';
+        }
         return;
       }
 
-      const { data, error } = await sb.rpc('get_receipt_by_id', { receipt_id: id });
+      const id = params.get('id');
+      if (!id) { card.innerHTML = '<p class="error">No receipt ID provided.</p>'; return; }
 
+      const { data, error } = await sb.rpc('get_receipt_by_id', { receipt_id: id });
       if (error || !data || data.length === 0) {
         card.innerHTML = '<p class="error">Receipt not found.</p>';
         return;
       }
 
       const r = data[0];
-      const date = new Date(r.created_at).toLocaleString('en');
-      if (!r.customer_id) document.getElementById('nudge').style.display = '';
-
-      card.innerHTML = `
-        <div class="store">${r.store_name || 'Purchase'}</div>
-        <div class="date">${date}</div>
-        <hr class="divider">
-        ${r.items && r.items.length ? r.items.map(i => `
-          <div class="item-row">
-            <span class="item-name">${i.name}</span>
-            <span class="item-qty">x${i.qty}</span>
-            <span class="item-val">${i.value}</span>
-          </div>
-        `).join('') : '<p style="color:#c4a09a;font-size:.875rem">No item data</p>'}
-        <hr class="divider">
-        <div class="total-row"><span>Total</span><span>${r.total_amount || '—'}</span></div>
-      `;
+      const items = (r.items || []).map(i => ({ n: i.name, q: i.qty, v: i.value }));
+      renderCard(r.store_name, items, r.total_amount, new Date(r.created_at).toLocaleString('en'), !r.customer_id);
     }
 
     loadReceipt();
