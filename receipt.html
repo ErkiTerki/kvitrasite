@@ -77,7 +77,7 @@
 
       const r = data[0];
       const date = new Date(r.created_at).toLocaleString('en');
-      document.getElementById('nudge').style.display = '';
+      if (!r.customer_id) document.getElementById('nudge').style.display = '';
 
       card.innerHTML = `
         <div class="store">${r.store_name || 'Purchase'}</div>
