@@ -149,30 +149,62 @@
     .receipt-card {
       background: #fff;
       border-radius: 12px;
-      padding: 1.4rem;
-      margin-bottom: 1rem;
+      margin-bottom: .75rem;
       box-shadow: 0 2px 16px rgba(192, 87, 74, 0.06);
+      overflow: hidden;
     }
 
-    .receipt-header {
+    .receipt-summary {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
+      align-items: center;
+      padding: 1.1rem 1.4rem;
+      cursor: pointer;
+      user-select: none;
+      gap: 1rem;
     }
 
-    .receipt-header h3 { font-size: 1rem; font-weight: 500; }
-    .receipt-header span { font-size: .8rem; color: #b08880; }
+    .receipt-summary:hover { background: #FFF8F7; }
+
+    .receipt-summary-left h3 { font-size: .95rem; font-weight: 500; }
+    .receipt-summary-left .date { font-size: .78rem; color: #b08880; margin-top: .15rem; }
+
+    .receipt-summary-right {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      flex-shrink: 0;
+    }
+
+    .receipt-total { font-size: .95rem; font-weight: 500; color: #c0574a; }
+
+    .chevron {
+      width: 16px;
+      height: 16px;
+      color: #d9b0aa;
+      transition: transform .22s ease;
+      flex-shrink: 0;
+    }
+
+    .receipt-card.open .chevron { transform: rotate(180deg); }
+
+    .receipt-body {
+      display: none;
+      padding: 0 1.4rem 1.2rem;
+      border-top: 1px solid #FFF0ED;
+    }
+
+    .receipt-card.open .receipt-body { display: block; }
 
     .item-row {
       display: flex;
       justify-content: space-between;
       font-size: .875rem;
-      padding: .25rem 0;
+      padding: .28rem 0;
       color: #666;
     }
 
-    .divider { border: none; border-top: 1px solid #FFF0ED; margin: .75rem 0; }
+    .divider { border: none; border-top: 1px solid #FFF0ED; margin: .6rem 0; }
 
     .total-row {
       display: flex;
@@ -316,21 +348,35 @@
         return;
       }
 
-      list.innerHTML = receipts.map(r => `
-        <div class="receipt-card">
-          <div class="receipt-header">
-            <h3>${r.store_name || 'Purchase'}</h3>
-            <span>${new Date(r.created_at).toLocaleString()}</span>
-          </div>
-          ${r.items && r.items.length ? `
+      list.innerHTML = receipts.map(r => {
+        const hasItems = r.items && r.items.length;
+        const itemsHtml = hasItems ? `
+          <div class="receipt-body">
             ${r.items.map(i => `
               <div class="item-row"><span>${i.name} &times;${i.qty}</span><span>${i.value}</span></div>
             `).join('')}
             <hr class="divider">
             <div class="total-row"><span>Total</span><span>${r.total_amount}</span></div>
-          ` : '<span style="color:#c4a09a;font-size:.85rem">Receipt data unavailable</span>'}
-        </div>
-      `).join('');
+          </div>` : '';
+        return `
+          <div class="receipt-card" onclick="toggleReceipt(this)">
+            <div class="receipt-summary">
+              <div class="receipt-summary-left">
+                <h3>${r.store_name || 'Purchase'}</h3>
+                <div class="date">${new Date(r.created_at).toLocaleString()}</div>
+              </div>
+              <div class="receipt-summary-right">
+                <span class="receipt-total">${r.total_amount || ''}</span>
+                ${hasItems ? `<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>` : ''}
+              </div>
+            </div>
+            ${itemsHtml}
+          </div>`;
+      }).join('');
+    }
+
+    function toggleReceipt(card) {
+      card.classList.toggle('open');
     }
 
     sb.auth.getSession().then(({ data: { session } }) => {
