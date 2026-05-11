@@ -426,7 +426,7 @@
               <div class="receipt-summary">
                 <div class="receipt-summary-left">
                   <h3>${r.store_name || 'Purchase'}</h3>
-                  <div class="time">${new Date(r.created_at).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}</div>
+                  <div class="time">${new Date(r.created_at).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
                 </div>
                 <div class="receipt-summary-right">
                   <span class="receipt-total">${r.total_amount || ''}</span>

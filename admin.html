@@ -205,7 +205,7 @@
       list.innerHTML = receipts.map(r => `
         <div class="receipt-card">
           <h3>${r.store_name || 'Purchase'}</h3>
-          <div class="date">${new Date(r.created_at).toLocaleString('en')}</div>
+          <div class="date">${new Date(r.created_at).toLocaleString('en', { hour12: false })}</div>
           ${r.items && r.items.length ? `
             ${r.items.map(i => `
               <div class="item-row"><span>${i.name} x${i.qty}</span><span>${i.value}</span></div>
@@ -231,7 +231,7 @@
         const tr = document.createElement('tr');
         tr.className = 'clickable';
         tr.innerHTML = `
-          <td>${new Date(r.created_at).toLocaleString('en')}</td>
+          <td>${new Date(r.created_at).toLocaleString('en', { hour12: false })}</td>
           <td>${r.store_name || '—'}</td>
           <td>${r.total_amount || '—'}</td>
           <td><span class="anon-badge">anonymous</span></td>
